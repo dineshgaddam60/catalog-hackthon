@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shamir's Secret Sharing</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        textarea { width: 100%; }
+        pre { background: #f0f0f0; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Shamir's Secret Sharing</h1>
+    <textarea id="inputData" rows="20" placeholder='Paste your JSON input here'></textarea><br>
+    <button onclick="processData()">Calculate Secrets</button>
+    <h2>Output</h2>
+    <pre id="output"></pre>
+
+    <script>
+        function decodeValue(base, value) {
+            return parseInt(value, parseInt(base));
+        }
+
+        function lagrangeInterpolation(points, x) {
+            let result = 0;
+            for (let i = 0; i < points.length; i++) {
+                let xi = points[i][0];
+                let yi = points[i][1];
+                let term = yi;
+
+                for (let j = 0; j < points.length; j++) {
+                    if (i !== j) {
+                        term *= (x - points[j][0]) / (xi - points[j][0]);
+                    }
+                }
+                result += term;
+            }
+            return result;
+        }
+
+        function findWrongPoints(points) {
+            const wrongPoints = [];
+            const constantTerm = lagrangeInterpolation(points, 0);
+            points.forEach(([x, y]) => {
+                const expectedY = lagrangeInterpolation(points, x);
+                if (Math.round(expectedY) !== Math.round(y)) {
+                    wrongPoints.push({ x, y });
+                }
+            });
+            return { constantTerm, wrongPoints };
+        }
+
+        function processData() {
+            const input = JSON.parse(document.getElementById('inputData').value);
+            const output = document.getElementById('output');
+
+            // Test Case 1
+            const firstTestPoints = [
+                [1, decodeValue(input["1"].base, input["1"].value)],
+                [2, decodeValue(input["2"].base, input["2"].value)],
+                [3, decodeValue(input["3"].base, input["3"].value)],
+                [6, decodeValue(input["6"].base, input["6"].value)]
+            ];
+
+            const { constantTerm: secret1 } = findWrongPoints(firstTestPoints);
+
+            // Test Case 2
+            const secondTestPoints = [
+                [1, decodeValue(input["1"].base, input["1"].value)],
+                [2, decodeValue(input["2"].base, input["2"].value)],
+                [3, decodeValue(input["3"].base, input["3"].value)],
+                [4, decodeValue(input["4"].base, input["4"].value)],
+                [5, decodeValue(input["5"].base, input["5"].value)],
+                [6, decodeValue(input["6"].base, input["6"].value)],
+                [7, decodeValue(input["7"].base, input["7"].value)],
+                [8, decodeValue(input["8"].base, input["8"].value)],
+                [9, decodeValue(input["9"].base, input["9"].value)]
+            ];
+
+            const { constantTerm: secret2, wrongPoints } = findWrongPoints(secondTestPoints);
+
+            // Prepare output
+            let result = `Secret from first test case: ${secret1}\n`;
+            result += `Secret from second test case: ${secret2}\n`;
+
+            if (wrongPoints.length > 0) {
+                result += "Wrong points in second test case:\n";
+                wrongPoints.forEach(point => {
+                    result += `(${point.x}, ${point.y})\n`;
+                });
+            } else {
+                result += "No wrong points found in the second test case.";
+            }
+
+            output.textContent = result;
+        }
+    </script>
+</body>
+</html>
